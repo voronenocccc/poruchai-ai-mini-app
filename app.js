@@ -37,6 +37,7 @@ const promos = {
 async function api(path, data) {
   try {
     const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    if (!response.ok) throw new Error("api unavailable");
     return response.json();
   } catch (error) {
     return localFallback(path, data);
@@ -45,6 +46,7 @@ async function api(path, data) {
 async function get(path) {
   try {
     const response = await fetch(path);
+    if (!response.ok) throw new Error("api unavailable");
     return response.json();
   } catch (error) {
     return localFallback(path);
@@ -56,7 +58,7 @@ function localFallback(path, data = {}) {
   if (path === "/api/lead") {
     leads.push({ ...data, created_at: new Date().toISOString() });
     localStorage.setItem("demo_leads", JSON.stringify(leads));
-    return Promise.resolve({ ok: true, lead: data, local: true });
+    return Promise.resolve({ ok: true, local: true });
   }
   if (path === "/api/stats") return Promise.resolve({ users: 1, leads: leads.length, campaigns: Number(localStorage.getItem("demo_campaigns") || 0) });
   if (path === "/api/leads") return Promise.resolve({ leads });
@@ -64,7 +66,12 @@ function localFallback(path, data = {}) {
     localStorage.setItem("demo_campaigns", String(Number(localStorage.getItem("demo_campaigns") || 0) + 1));
     return Promise.resolve({ ok: true, sent: 0, failed: 0, local: true });
   }
-  return Promise.resolve({ ok: false, error: "static_pages_mode" });
+  return Promise.resolve({ ok: false, error: "offline" });
+}
+function sendToBot(action, payload = {}) {
+  if (!tg?.sendData || state.user.user_id === "local_demo") return false;
+  tg.sendData(JSON.stringify({ action, ...payload }));
+  return true;
 }
 function vibrate(kind = "light") {
   tg?.HapticFeedback?.impactOccurred(kind);
@@ -94,6 +101,14 @@ function show(view) {
 
 document.querySelectorAll("[data-go]").forEach(button => button.addEventListener("click", () => show(button.dataset.go)));
 document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => show("home")));
+document.querySelectorAll("[data-role-pick]").forEach(button => button.addEventListener("click", () => {
+  const role = button.dataset.rolePick;
+  state.user.role = role;
+  localStorage.setItem("role", role);
+  document.getElementById("roleGate").classList.add("hidden");
+  sendToBot("register", { role });
+  api("/api/user", { ...state.user, role });
+}));
 
 const contact = document.getElementById("contactInput");
 if (contact && state.user.username) contact.value = `@${state.user.username}`;
@@ -104,6 +119,9 @@ api("/api/user", state.user).then(result => {
   }
   const startView = (location.hash || "").replace("#", "");
   if (["home", "lead", "admin", "diagnostic", "roi", "qa", "promo"].includes(startView)) show(startView);
+  if (!state.user.role && state.user.user_id !== ADMIN_ID) {
+    document.getElementById("roleGate").classList.remove("hidden");
+  }
 });
 
 function renderDiag() {
@@ -157,8 +175,9 @@ document.getElementById("leadForm").onsubmit = async event => {
   state.user.role = data.role;
   localStorage.setItem("role", data.role);
   if (!data.contact && state.user.username) data.contact = `@${state.user.username}`;
-  const result = await api("/api/lead", { ...state.user, ...data });
-  document.getElementById("leadResult").innerHTML = result.ok ? "<b>Заявка сохранена.</b><br>В GitHub Pages-версии она хранится локально на устройстве. В серверной версии админ увидит CSV." : "Не удалось сохранить заявку.";
+  const sentToBot = sendToBot("lead", { ...data, role: data.role });
+  const result = sentToBot ? { ok: true, telegram: true } : await api("/api/lead", { ...state.user, ...data });
+  document.getElementById("leadResult").innerHTML = result.ok ? "<b>Заявка отправлена.</b><br>Админ получит ее сообщением в Telegram." : "Не удалось сохранить заявку.";
   tg?.HapticFeedback?.notificationOccurred("success");
 };
 
@@ -186,14 +205,13 @@ async function loadAdmin() {
     <div class="row"><b>${lead.department || "Без подразделения"}</b><span>${lead.contact || "контакт не указан"} · ${lead.meetings || "?"} встреч</span></div>`).join("") || "<span>Заявок пока нет.</span>";
 }
 document.getElementById("previewBroadcast").onclick = () => {
-  const segment = document.getElementById("broadcastSegment").value;
   const text = document.getElementById("broadcastText").value;
-  document.getElementById("broadcastResult").innerHTML = `<b>Предпросмотр</b><br>Сегмент: ${roles[segment] || segment}<br><br>${text}`;
+  document.getElementById("broadcastResult").innerHTML = `<b>Предпросмотр</b><br>Получатели: все пользователи<br><br>${text}`;
 };
 document.getElementById("sendBroadcast").onclick = async () => {
-  const segment = document.getElementById("broadcastSegment").value;
   const text = document.getElementById("broadcastText").value.trim();
-  const result = await api("/api/broadcast", { admin_id: state.user.user_id, segment, text });
-  document.getElementById("broadcastResult").innerHTML = result.local ? "<b>Демо-режим GitHub Pages</b><br>Интерфейс работает, но реальная Telegram-рассылка требует Python-сервер." : result.ok ? `<b>Рассылка отправлена</b><br>Отправлено: ${result.sent}<br>Ошибок: ${result.failed}` : `Ошибка: ${result.error}`;
+  const sentToBot = sendToBot("broadcast", { text });
+  const result = sentToBot ? { ok: true, telegram: true } : await api("/api/broadcast", { admin_id: state.user.user_id, segment: "all", text });
+  document.getElementById("broadcastResult").innerHTML = result.telegram ? "<b>Команда отправлена боту.</b><br>Итог рассылки придет админу в Telegram." : result.ok ? `<b>Рассылка отправлена</b><br>Отправлено: ${result.sent}<br>Ошибок: ${result.failed}` : `Ошибка: ${result.error}`;
   loadAdmin();
 };

@@ -14,6 +14,20 @@
     <div class="mesh m3"></div>
   </div>
 
+  <section class="role-gate hidden" id="roleGate">
+    <div class="role-card">
+      <span class="mark">П</span>
+      <h2>Выберите специальность</h2>
+      <p>Так бот поймет, какие сообщения и объяснения вам подходят.</p>
+      <div class="role-grid">
+        <button data-role-pick="leader">Руководитель</button>
+        <button data-role-pick="secretary">Секретарь</button>
+        <button data-role-pick="executor">Исполнитель</button>
+        <button data-role-pick="it">ИТ / интегратор</button>
+      </div>
+    </div>
+  </section>
+
   <main class="app">
     <section class="view active" data-view="home">
       <header class="hero">
@@ -144,15 +158,8 @@
       <div id="adminArea" class="hidden">
         <div class="admin-stats" id="adminStats"></div>
         <div class="card form">
-          <div class="card-title"><h3>Рассылка в Telegram</h3><span>реальная отправка пользователям</span></div>
-          <label>Кому отправляем?</label>
-          <select id="broadcastSegment">
-            <option value="all">Всем</option>
-            <option value="secretary">Секретарям</option>
-            <option value="leader">Руководителям</option>
-            <option value="executor">Исполнителям</option>
-            <option value="it">ИТ</option>
-          </select>
+          <div class="card-title"><h3>Рассылка в Telegram</h3><span>всем пользователям</span></div>
+          <div class="impact">Сообщение уйдет всем, кто нажимал /start или выбрал специальность в Mini App.</div>
           <label>Текст рассылки</label>
           <textarea id="broadcastText" rows="6">Коллеги, запускаем пилот Поручай AI на 20 совещаний. После встречи сервис собирает поручения, сроки и ответственных, а команда подтверждает их прямо в Telegram.</textarea>
           <div class="actions">

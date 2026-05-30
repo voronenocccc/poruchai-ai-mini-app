@@ -19,6 +19,13 @@ body { overflow-x: hidden; padding-bottom: 112px; }
 button, input, select, textarea { font: inherit; }
 button { border: 0; color: inherit; cursor: pointer; }
 .hidden { display: none !important; }
+.role-gate { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 18px; background: rgba(5, 8, 12, .72); backdrop-filter: blur(18px); }
+.role-card { width: min(100%, 420px); padding: 22px; border: 1px solid rgba(255,255,255,.14); border-radius: 28px; background: linear-gradient(180deg, rgba(30,38,52,.96), rgba(13,18,26,.96)); box-shadow: 0 28px 80px rgba(0,0,0,.5); }
+.role-card h2 { margin: 18px 0 10px; }
+.role-card p { color: #d7e0ec; line-height: 1.5; }
+.role-grid { display: grid; gap: 10px; margin-top: 16px; }
+.role-grid button { min-height: 54px; border-radius: 17px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); font-weight: 800; text-align: left; padding: 0 16px; }
+.role-grid button:active { transform: scale(.99); }
 .scene { position: fixed; inset: 0; overflow: hidden; pointer-events: none; background:
   radial-gradient(circle at 20% 10%, rgba(229, 57, 53, .22), transparent 31%),
   radial-gradient(circle at 82% 4%, rgba(69, 166, 255, .2), transparent 28%),
