@@ -8,6 +8,10 @@ if (tg) {
 
 const ADMIN_ID = "1119650246";
 const params = new URLSearchParams(location.search);
+const apiParam = params.get("api") || "";
+if (apiParam) localStorage.setItem("api_base", apiParam.replace(/\/$/, ""));
+const API_BASE = (apiParam || localStorage.getItem("api_base") || "").replace(/\/$/, "");
+const NEED_REAL_API = location.hostname.includes("github.io");
 const tgUser = tg?.initDataUnsafe?.user || {};
 const state = {
   user: {
@@ -34,9 +38,13 @@ const promos = {
   executor: "Поручай AI присылает исполнителю понятную задачу: что сделать, к какому сроку и откуда это поручение появилось. Меньше потерянного контекста и неожиданных дедлайнов."
 };
 
+function apiUrl(path) {
+  return `${API_BASE}${path}`;
+}
+
 async function api(path, data) {
   try {
-    const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    const response = await fetch(apiUrl(path), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
     if (!response.ok) throw new Error("api unavailable");
     return response.json();
   } catch (error) {
@@ -45,7 +53,7 @@ async function api(path, data) {
 }
 async function get(path) {
   try {
-    const response = await fetch(path);
+    const response = await fetch(apiUrl(path));
     if (!response.ok) throw new Error("api unavailable");
     return response.json();
   } catch (error) {
@@ -56,6 +64,7 @@ function localFallback(path, data = {}) {
   const leads = JSON.parse(localStorage.getItem("demo_leads") || "[]");
   if (path === "/api/user") return Promise.resolve({ ok: true, is_admin: state.user.user_id === ADMIN_ID });
   if (path === "/api/lead") {
+    if (NEED_REAL_API) return Promise.resolve({ ok: false, error: "api_unavailable" });
     leads.push({ ...data, created_at: new Date().toISOString() });
     localStorage.setItem("demo_leads", JSON.stringify(leads));
     return Promise.resolve({ ok: true, local: true });
@@ -63,6 +72,7 @@ function localFallback(path, data = {}) {
   if (path === "/api/stats") return Promise.resolve({ users: 1, leads: leads.length, campaigns: Number(localStorage.getItem("demo_campaigns") || 0) });
   if (path === "/api/leads") return Promise.resolve({ leads });
   if (path === "/api/broadcast") {
+    if (NEED_REAL_API) return Promise.resolve({ ok: false, error: "api_unavailable" });
     localStorage.setItem("demo_campaigns", String(Number(localStorage.getItem("demo_campaigns") || 0) + 1));
     return Promise.resolve({ ok: true, sent: 0, failed: 0, local: true });
   }
@@ -175,9 +185,9 @@ document.getElementById("leadForm").onsubmit = async event => {
   state.user.role = data.role;
   localStorage.setItem("role", data.role);
   if (!data.contact && state.user.username) data.contact = `@${state.user.username}`;
-  const sentToBot = sendToBot("lead", { ...data, role: data.role });
-  const result = sentToBot ? { ok: true, telegram: true } : await api("/api/lead", { ...state.user, ...data });
-  document.getElementById("leadResult").innerHTML = result.ok ? "<b>Заявка отправлена.</b><br>Админ получит ее сообщением в Telegram." : "Не удалось сохранить заявку.";
+  let result = await api("/api/lead", { ...state.user, ...data });
+  if (!result.ok && sendToBot("lead", { ...data, role: data.role })) result = { ok: true, telegram: true };
+  document.getElementById("leadResult").innerHTML = result.ok ? "<b>Заявка отправлена.</b><br>Админ получит ее сообщением в Telegram." : "<b>Не удалось сохранить заявку.</b><br>Открой Mini App кнопкой из /start, чтобы в ссылке был API.";
   tg?.HapticFeedback?.notificationOccurred("success");
 };
 
@@ -210,15 +220,21 @@ document.getElementById("previewBroadcast").onclick = () => {
 };
 document.getElementById("sendBroadcast").onclick = async () => {
   const text = document.getElementById("broadcastText").value.trim();
-  const sentToBot = sendToBot("broadcast", { text });
-  const result = sentToBot ? { ok: true, telegram: true } : await api("/api/broadcast", { admin_id: state.user.user_id, segment: "all", text });
-  document.getElementById("broadcastResult").innerHTML = result.telegram ? "<b>Команда отправлена боту.</b><br>Итог рассылки придет админу в Telegram. Если отчет не пришел, отправь боту команду /broadcast текст." : result.ok ? `<b>Рассылка отправлена</b><br>Отправлено: ${result.sent}<br>Ошибок: ${result.failed}` : `Ошибка: ${result.error}`;
+  let result = await api("/api/broadcast", { admin_id: state.user.user_id, segment: "all", text });
+  if (!result.ok && sendToBot("broadcast", { text })) result = { ok: true, telegram: true };
+  document.getElementById("broadcastResult").innerHTML = result.telegram ? "<b>Команда отправлена боту.</b><br>Итог рассылки придет админу в Telegram. Если отчет не пришел, отправь боту команду /broadcast текст." : result.ok ? `<b>Рассылка отправлена</b><br>Отправлено: ${result.sent}<br>Ошибок: ${result.failed}` : `Ошибка: ${result.error}. Для надежной рассылки можно написать боту /broadcast текст.`;
   loadAdmin();
 };
-document.getElementById("requestLeads").onclick = () => {
+document.getElementById("requestLeads").onclick = async () => {
+  const leads = await get("/api/leads");
+  if ((leads.leads || []).length) {
+    document.getElementById("leadsTable").innerHTML = leads.leads.slice(-12).reverse().map(lead => `
+      <div class="row"><b>${lead.department || "Без подразделения"}</b><span>${lead.contact || "контакт не указан"} · ${lead.meetings || "?"} встреч</span></div>`).join("");
+    return;
+  }
   const sentToBot = sendToBot("admin_leads", {});
   const message = sentToBot
     ? "<b>Запрос отправлен.</b><br>Бот пришлет последние заявки и CSV в Telegram."
-    : "<b>Открой через Telegram.</b><br>Или напиши боту команду /leads.";
+    : "<b>Нет доступа к API.</b><br>Открой Mini App кнопкой из /start или напиши боту /leads.";
   document.getElementById("leadsTable").innerHTML = `<span>${message}</span>`;
 };
