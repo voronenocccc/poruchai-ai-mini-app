@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Поручай AI</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="scene">
+    <div class="mesh m1"></div>
+    <div class="mesh m2"></div>
+    <div class="mesh m3"></div>
+  </div>
+
+  <main class="app">
+    <section class="view active" data-view="home">
+      <header class="hero">
+        <div class="hero-bar">
+          <div class="brand">
+            <span class="mark">П</span>
+            <div>
+              <small>Telegram Mini App</small>
+              <strong>Поручай AI</strong>
+            </div>
+          </div>
+          <button class="ghost" data-go="admin" id="adminQuick">Admin</button>
+        </div>
+
+        <div class="hero-copy">
+          <p class="eyebrow">Кейс 3 / РЖД</p>
+          <h1>После совещания поручения не теряются</h1>
+          <p>Мини-приложение показывает ценность продукта без регистрации: боль, расчет эффекта, заявка на пилот и админские рассылки прямо в Telegram.</p>
+        </div>
+
+        <div class="timeline">
+          <span>Совещание</span>
+          <i></i>
+          <span>ИИ выделяет задачи</span>
+          <i></i>
+          <span>Админ запускает пилот</span>
+        </div>
+      </header>
+
+      <section class="stats">
+        <article><b>20</b><span>встреч в пилоте</span></article>
+        <article><b>24ч</b><span>на подтверждение</span></article>
+        <article><b>45м</b><span>экономии с встречи</span></article>
+      </section>
+
+      <div class="tap-hint">Нажимайте на карточки, чтобы открыть сценарий</div>
+      <section class="board">
+        <button class="tile red" data-go="diagnostic">
+          <span>01</span><b>Найти боль</b><em>Быстрый сценарий для защиты: где сейчас теряются поручения.</em><strong>Открыть</strong>
+        </button>
+        <button class="tile mint" data-go="roi">
+          <span>02</span><b>Посчитать эффект</b><em>Переводим идею в часы и рабочие дни.</em><strong>Открыть</strong>
+        </button>
+        <button class="tile gold" data-go="lead">
+          <span>03</span><b>Запустить пилот</b><em>Заявка без регистрации, контакт можно взять из Telegram.</em><strong>Открыть</strong>
+        </button>
+        <button class="tile blue" data-go="qa">
+          <span>04</span><b>Ответить на вопросы</b><em>Безопасность, точность, интеграции и метрики.</em><strong>Открыть</strong>
+        </button>
+        <button class="tile ink" data-go="promo">
+          <span>05</span><b>Промо-сообщения</b><em>Готовые тексты для разных ролей.</em><strong>Открыть</strong>
+        </button>
+        <button class="tile violet admin-only hidden" data-go="admin">
+          <span>AD</span><b>Админ-панель</b><em>Статистика, лиды и Telegram-рассылки.</em><strong>Открыть</strong>
+        </button>
+      </section>
+    </section>
+
+    <section class="view" data-view="diagnostic">
+      <div class="head"><button class="back" data-back>←</button><div><small>Scenario 01</small><h2>Диагностика боли</h2></div></div>
+      <div class="stepper" id="diagStepper"></div>
+      <div class="card" id="diagPanel"></div>
+    </section>
+
+    <section class="view" data-view="roi">
+      <div class="head"><button class="back" data-back>←</button><div><small>Scenario 02</small><h2>Расчет эффекта</h2></div></div>
+      <div class="card form">
+        <label>Совещаний в месяц</label>
+        <div class="number-row">
+          <button type="button" id="minusMeetings">−</button>
+          <input id="roiMeetings" inputmode="numeric" type="number" value="40" min="1">
+          <button type="button" id="plusMeetings">+</button>
+        </div>
+        <button class="primary" id="calcRoi">Посчитать</button>
+        <div class="impact" id="roiResult">Нажмите расчет, чтобы показать экономику пилота.</div>
+      </div>
+    </section>
+
+    <section class="view" data-view="lead">
+      <div class="head"><button class="back" data-back>←</button><div><small>Scenario 03</small><h2>Заявка на пилот</h2></div></div>
+      <form class="card form" id="leadForm">
+        <label>Кто запускает пилот?</label>
+        <select name="role">
+          <option value="leader">Руководитель</option>
+          <option value="secretary">Секретарь</option>
+          <option value="executor">Исполнитель</option>
+          <option value="it">ИТ / интегратор</option>
+        </select>
+        <label>Подразделение</label>
+        <input name="department" placeholder="Например: дирекция управления движением" required>
+        <label>Сколько встреч берем в пилот?</label>
+        <input name="meetings" type="number" value="20" min="1">
+        <label>Главная интеграция</label>
+        <select name="integration">
+          <option>СЭД</option>
+          <option>Трекер задач</option>
+          <option>Календарь</option>
+          <option>Каталог сотрудников</option>
+        </select>
+        <label>Контакт</label>
+        <input name="contact" id="contactInput" placeholder="Автоматически подставим Telegram, если он есть">
+        <button class="primary" type="submit">Сохранить заявку</button>
+        <div class="impact" id="leadResult"></div>
+      </form>
+    </section>
+
+    <section class="view" data-view="qa">
+      <div class="head"><button class="back" data-back>←</button><div><small>Scenario 04</small><h2>Q&A</h2></div></div>
+      <div class="qa" id="qaList"></div>
+    </section>
+
+    <section class="view" data-view="promo">
+      <div class="head"><button class="back" data-back>←</button><div><small>Scenario 05</small><h2>Промо</h2></div></div>
+      <div class="tabs">
+        <button class="active" data-promo="leader">Руководитель</button>
+        <button data-promo="secretary">Секретарь</button>
+        <button data-promo="executor">Исполнитель</button>
+      </div>
+      <div class="card promo" id="promoText"></div>
+    </section>
+
+    <section class="view" data-view="admin">
+      <div class="head"><button class="back" data-back>←</button><div><small>Admin workspace</small><h2>Админ-панель</h2></div></div>
+      <div id="adminDenied" class="card hidden">
+        <h3>Доступ закрыт</h3>
+        <p>Админка открывается только у Telegram ID, который указан в <b>ADMIN_IDS</b>.</p>
+      </div>
+      <div id="adminArea" class="hidden">
+        <div class="admin-stats" id="adminStats"></div>
+        <div class="card form">
+          <div class="card-title"><h3>Рассылка в Telegram</h3><span>реальная отправка пользователям</span></div>
+          <label>Кому отправляем?</label>
+          <select id="broadcastSegment">
+            <option value="all">Всем</option>
+            <option value="secretary">Секретарям</option>
+            <option value="leader">Руководителям</option>
+            <option value="executor">Исполнителям</option>
+            <option value="it">ИТ</option>
+          </select>
+          <label>Текст рассылки</label>
+          <textarea id="broadcastText" rows="6">Коллеги, запускаем пилот Поручай AI на 20 совещаний. После встречи сервис собирает поручения, сроки и ответственных, а команда подтверждает их прямо в Telegram.</textarea>
+          <div class="actions">
+            <button type="button" class="secondary" id="previewBroadcast">Предпросмотр</button>
+            <button type="button" class="primary" id="sendBroadcast">Отправить</button>
+          </div>
+          <div class="impact" id="broadcastResult"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><h3>Последние заявки</h3><span>сохраняются в CSV</span></div>
+          <div class="mini-table" id="leadsTable"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav">
+    <button class="active" data-go="home">Главная</button>
+    <button data-go="lead">Пилот</button>
+    <button data-go="admin">Адм</button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
