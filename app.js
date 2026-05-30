@@ -212,6 +212,13 @@ document.getElementById("sendBroadcast").onclick = async () => {
   const text = document.getElementById("broadcastText").value.trim();
   const sentToBot = sendToBot("broadcast", { text });
   const result = sentToBot ? { ok: true, telegram: true } : await api("/api/broadcast", { admin_id: state.user.user_id, segment: "all", text });
-  document.getElementById("broadcastResult").innerHTML = result.telegram ? "<b>Команда отправлена боту.</b><br>Итог рассылки придет админу в Telegram." : result.ok ? `<b>Рассылка отправлена</b><br>Отправлено: ${result.sent}<br>Ошибок: ${result.failed}` : `Ошибка: ${result.error}`;
+  document.getElementById("broadcastResult").innerHTML = result.telegram ? "<b>Команда отправлена боту.</b><br>Итог рассылки придет админу в Telegram. Если отчет не пришел, отправь боту команду /broadcast текст." : result.ok ? `<b>Рассылка отправлена</b><br>Отправлено: ${result.sent}<br>Ошибок: ${result.failed}` : `Ошибка: ${result.error}`;
   loadAdmin();
+};
+document.getElementById("requestLeads").onclick = () => {
+  const sentToBot = sendToBot("admin_leads", {});
+  const message = sentToBot
+    ? "<b>Запрос отправлен.</b><br>Бот пришлет последние заявки и CSV в Telegram."
+    : "<b>Открой через Telegram.</b><br>Или напиши боту команду /leads.";
+  document.getElementById("leadsTable").innerHTML = `<span>${message}</span>`;
 };
